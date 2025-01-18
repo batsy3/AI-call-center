@@ -1,14 +1,16 @@
-import { Controller, Post, Req } from '@nestjs/common';
+import { Controller, Get, Param, Post, Query, Req, Res } from '@nestjs/common';
 import { AppService } from './app.service';
+import { VoiceGateway } from './voiceGateway.service';
+const twilio = require('twilio');
 
-@Controller()
+@Controller('call')
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  constructor(
+    private readonly appService: AppService,
+  ) {}
 
-  @Post()
-  makeCall(@Req() request:Request): string {
-    return this.appService.getHello();
+  @Get()
+  initiateCall() {
+    return this.appService.initiateCall('+260971445269');
   }
-
-
 }
