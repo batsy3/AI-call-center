@@ -27,6 +27,7 @@ export class OpenApiGateway
   }
   afterInit(server: any) {
     console.log('WebSocket Gateway Initialized');
+    console.log(`openApi config : ${this.configService.get('openai.apiKey')}`);
 
     this.openAiWs.on('message', (data) => {
       console.log('Received message from OpenAI:', data.toString());
@@ -44,7 +45,6 @@ export class OpenApiGateway
   handleConnection() {
     this.openAiWs.onmessage = (event) => {
       console.log('Received message from openAi:', event.data);
-      //
       this.server.emit('message', event.data);
     };
   }

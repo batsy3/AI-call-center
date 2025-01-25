@@ -5,7 +5,8 @@ import { CallMetadata } from './call.interface';
 import { AudioService } from './audio.service';
 import { Twilio } from 'twilio';
 import WebSocket from 'ws';
-const VoiceResponse = require('twilio').twiml.VoiceResponse as typeof import('twilio').twiml.VoiceResponse;
+const VoiceResponse = require('twilio').twiml
+  .VoiceResponse as typeof import('twilio').twiml.VoiceResponse;
 @Injectable()
 export class AppService {
   private readonly client: Twilio;
@@ -18,8 +19,8 @@ export class AppService {
     private audioService: AudioService,
   ) {
     this.client = twilio(
-      'AC94746940404680465bbedbe08265b67e',
-      'a8372ba8902de495bb06bc6490dc4ccd',
+      'ACf030769706d9a5c00e2a80f2b4a74d16',
+      'b234170961a844b47ac03c4a23918a95',
       {
         lazyLoading: true,
         logLevel: 'debug',
@@ -35,15 +36,22 @@ export class AppService {
       const call = await this.client.calls.create({
         to,
         from: this.configService.get('twilio.phoneNumber'),
+        //     twiml: ` <Response>
+        //      <Say>${initialGreeting}</Say>
+        //      <Connect>
+        //      </Connect>
+        //    </Response>
+        //  `,
         twiml: `
-        <Response>
-          <Say>${initialGreeting}</Say>
-          <Connect>
-            <Stream name="Outbound Audio Stream" track="inbound_track" url="wss://4fba-41-216-87-11.ngrok-free.app/call/intercept">
-            </Stream>
-          </Connect>
-        </Response>
-      `,
+          <Response>
+            <Say>${initialGreeting}</Say>
+            <Connect>
+              <Stream name="Outbound Audio Stream" track="inbound_track" url="wss://204c-41-223-116-250.ngrok-free.app/call/intercept">
+               <Parameter name="track" value="both" />
+              </Stream>
+            </Connect>
+          </Response>
+        `,
         record: true,
       });
 

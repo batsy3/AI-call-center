@@ -13,7 +13,12 @@ export class AudioService {
       content: string;
     }>
   > = new Map();
+  private audioBuffers: Map<string, Buffer[]> = new Map();
+  private processingLocks: Map<string, boolean> = new Map();
+  private lastAudioTime: Map<string, number> = new Map();
+  private activeChecks: Map<string, boolean> = new Map();
   private readonly logger = new Logger(AudioService.name);
+  private readonly SILENCE_THRESHOLD = 1000;
   constructor(private ConfigService: ConfigService) {
     this.openAi = new OpenAI({
       // apiKey: this.ConfigService.get('openai.apiKey'),
@@ -35,20 +40,21 @@ export class AudioService {
         content: 'Welcome, how may I help you today?', // Initial greeting
       },
     ]);
-    this.messageHistory.set(callSid, []);
-
+    
+    this.audioBuffers.set(callSid, []);
+    this.processingLocks.set(callSid, false);
+    this.lastAudioTime.set(callSid, Date.now());
     socket.onmessage = async (data) => {
       try {
-        console.log('Received message:', data);
         const message = JSON.parse(data.data.toString());
 
         if (message.event === 'start') {
           this.logger.log('Media stream started');
         }
 
-        if (message.event === 'media') {
+        if (message.event === 'media' && message.media.track === 'inbound') {
           this.logger.log('Received audio chunk, processing...');
-          await this.processAudioChunk(socket, callSid, message.media.payload);
+          this.handleAudioChunk(socket, callSid, message.media.payload);
         }
 
         if (message.event === 'stop') {
@@ -57,61 +63,107 @@ export class AudioService {
       } catch (error) {
         console.error('Error processing message:', error);
       }
-      socket.onerror = (error) => {
-        this.logger.error(`WebSocket error for call ${callSid}:`, error);
-      };
-
-      socket.onclose = () => {
-        this.logger.log(`Cleaning up call ${callSid}`);
-        this.messageHistory.delete(callSid);
-      };
     };
-
-    socket.close = () => {
+    socket.onerror = (error) => {
+      this.logger.error(`WebSocket error for call ${callSid}:`, error);
+      socket.close();
+      this.cleanup(callSid);
+    };
+    socket.onclose = () => {
+      this.logger.log(`Cleaning up call ${callSid}`);
       this.messageHistory.delete(callSid);
+      this.cleanup(callSid);
     };
   }
 
-  private async processAudioChunk(
+  private async handleAudioChunk(
     socket: WebSocket,
     callSid: string,
-    audioData: any,
+    audioData: string,
   ) {
+    const currentBuffer = this.audioBuffers.get(callSid);
+    currentBuffer.push(Buffer.from(audioData, 'base64'));
+    this.logger.debug(`pushing to buffer ${callSid}`);
+    this.lastAudioTime.set(callSid, Date.now());
+
+    if (!this.processingLocks.get(callSid) && !this.activeChecks.get(callSid)) {
+      this.activeChecks.set(callSid, true);
+      await this.checkAndProcessAudio(socket, callSid);
+    }
+  }
+
+  private async checkAndProcessAudio(socket: WebSocket, callSid: string) {
+    if (!this.audioBuffers.has(callSid)) {
+      this.activeChecks.set(callSid, false);
+      return;
+    }
+    const checkBuffer = async () => {
+      const currentTime = Date.now();
+      const lastAudioTime = this.lastAudioTime.get(callSid);
+      this.logger.debug(`Checking for quiet time ${callSid}`);
+      if (currentTime - lastAudioTime >= this.SILENCE_THRESHOLD) {
+        if (this.audioBuffers.get(callSid).length > 0) {
+          this.processBufferedAudio(socket, callSid);
+          this.processingLocks.set(callSid, false);
+          this.activeChecks.set(callSid, false);
+        }
+      } else {
+        const timeoutId = setTimeout(() => checkBuffer(), 100);
+      }
+    };
+
+    await checkBuffer();
+  }
+
+  private async processBufferedAudio(socket: WebSocket, callSid: string) {
+    if (this.processingLocks.get(callSid)) return;
+
     try {
-      this.logger.log('Step 1: Starting audio transcription');
-      const transcription = await this.transcribeAudio(audioData);
-      this.logger.log(`Transcription result: ${transcription}`);
+      this.processingLocks.set(callSid, true);
+
+      const buffers = this.audioBuffers.get(callSid);
+      if (!buffers.length) return;
+
+      const combinedBuffer = Buffer.concat(buffers);
+      this.audioBuffers.set(callSid, []); // Clear the buffer
+
+      this.logger.log('Processing combined audio chunk');
+      const transcription = await this.transcribeAudio(combinedBuffer);
 
       if (transcription) {
-        this.logger.log('Step 2: Getting AI response');
         const aiResponse = await this.getAIResponse(callSid, transcription);
-        this.logger.log(`AI response: ${aiResponse}`);
-
-        this.logger.log('Step 3: Converting response to speech');
         const audioResponse = await this.textToSpeech(aiResponse);
-        this.logger.log('Audio response generated successfully');
 
-        this.logger.log('Step 4: Sending audio response back to client');
         socket.send(
           JSON.stringify({
             event: 'media',
             streamSid: callSid,
             media: {
+              track: 'outbound',
+              chunk: audioResponse.toString('base64'),
+              timestamp: Date.now(),
               payload: audioResponse.toString('base64'),
             },
           }),
         );
-        this.logger.log('Response sent successfully');
       }
     } catch (error) {
-      this.logger.error('Error in processAudioChunk:', error);
+      this.logger.error('Error processing buffered audio:', error);
+    } finally {
+      this.processingLocks.set(callSid, false);
     }
+  }
+
+  private cleanup(callSid: string) {
+    this.messageHistory.delete(callSid);
+    this.audioBuffers.delete(callSid);
+    this.processingLocks.delete(callSid);
+    this.lastAudioTime.delete(callSid);
+    this.activeChecks.delete(callSid);
   }
   private async transcribeAudio(audioBuffer: any): Promise<string> {
     try {
       const audioBlob = Buffer.from(audioBuffer, 'base64');
-
-      // Log the audio data size to verify we're receiving data
       this.logger.debug(
         `Processing audio chunk of size: ${audioBlob.length} bytes`,
       );

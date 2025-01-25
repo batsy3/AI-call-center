@@ -11,6 +11,6 @@ export class AppController {
 
   @Get()
   initiateCall() {
-    return this.appService.initiateCall('+260971445269');
+    return this.appService.initiateCall('+260979348765');
   }
 }
