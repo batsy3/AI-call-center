@@ -36,17 +36,11 @@ export class AppService {
       const call = await this.client.calls.create({
         to,
         from: this.configService.get('twilio.phoneNumber'),
-        //     twiml: ` <Response>
-        //      <Say>${initialGreeting}</Say>
-        //      <Connect>
-        //      </Connect>
-        //    </Response>
-        //  `,
         twiml: `
           <Response>
             <Say>${initialGreeting}</Say>
             <Connect>
-              <Stream name="Outbound Audio Stream" track="inbound_track" url="wss://204c-41-223-116-250.ngrok-free.app/call/intercept">
+              <Stream name="Outbound Audio Stream" track="inbound_track" url="wss://2d79-41-223-116-249.ngrok-free.app/call/intercept">
                <Parameter name="track" value="both" />
               </Stream>
             </Connect>
