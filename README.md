@@ -39,7 +39,7 @@ A virtual receptionist system that uses OpenAI's GPT-4, Twilio, and Google Speec
 
    ```mermaid
    graph LR
-   A[Incoming Call] --> B[Twilio Media Stream]
+   A[Outgoing Call] --> B[Twilio Media Stream]
    B --> C[OpenAI Real-time Processing]
    B --> D[Google Speech-to-Text]
    C --> E[AI Response]
