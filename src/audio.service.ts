@@ -21,9 +21,9 @@ export class AudioService {
   private readonly SILENCE_THRESHOLD = 1000;
   constructor(private ConfigService: ConfigService) {
     this.openAi = new OpenAI({
-      // apiKey: this.ConfigService.get('openai.apiKey'),
-      apiKey:
-        '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',
+      apiKey: this.ConfigService.get('openai.apiKey'),
+      // apiKey:
+      //   '',
     });
   }
 
