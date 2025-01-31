@@ -91,7 +91,7 @@ Working hours:
           'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17',
           {
             headers: {
-              Authorization: `Bearer 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`,
+              Authorization: `Bearer ${this.ConfigService.get('openai.ApiKey')}`,
               'OpenAI-Beta': 'realtime=v1',
             },
           },

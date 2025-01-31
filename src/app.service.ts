@@ -22,8 +22,8 @@ export class AppService {
     private audioService: AudioService,
   ) {
     this.client = twilio(
-      'AC196e3ac89dd69d110fff7283dfd797a9',
-      'ba4893fd60cb001b720e152c317d4c39',
+      `${this.configService.get('twilio.accountSid')}`,
+      `${this.configService.get('twilio.authToken')}`,
       {
         lazyLoading: true,
         logLevel: 'debug',
