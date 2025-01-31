@@ -74,7 +74,7 @@ Working hours:
   private readonly MAX_BUFFER_DURATION = 1500;
   private openAiWs: WebSocket;
   private googleClient;
-  private audioBuffer: string[] = [];
+  private transcribeAudioBuffer: Buffer = Buffer.alloc(0);
   private isSpeechActive = false;
   constructor(private readonly ConfigService: ConfigService) {
     this.googleClient = new speech.SpeechClient();
@@ -179,7 +179,9 @@ Working hours:
       return transcription;
     } catch (error) {
       console.error('Error transcribing with Google Speech-to-Text:', error);
-      return '';
+      return error;
+    } finally {
+      this.transcribeAudioBuffer = Buffer.alloc(0);
     }
   }
   handleConnection(connection: WebSocket, request: IncomingMessage) {
@@ -233,6 +235,10 @@ Working hours:
             console.log('Incoming stream has started', this.streamSid);
             break;
           case 'media':
+            this.transcribeAudioBuffer = Buffer.concat([
+              this.transcribeAudioBuffer,
+              Buffer.from(data.media.payload, 'base64'),
+            ]);
             const audioBuffer = Buffer.from(data.media.payload, 'base64');
             if (this.openAiWs.readyState === WebSocket.OPEN) {
               const audioAppend = {
@@ -241,8 +247,9 @@ Working hours:
               };
               this.openAiWs.send(JSON.stringify(audioAppend));
             }
-            const googleTranscription =
-              await this.transcribeWithGoogle(audioBuffer);
+            const googleTranscription = await this.transcribeWithGoogle(
+              this.transcribeAudioBuffer,
+            );
             if (googleTranscription) {
               console.log(
                 'Google Speech-to-Text Transcription:',

@@ -56,7 +56,7 @@ export class AppService {
         const transcription = response.results
           .map((result) => result.alternatives[0].transcript)
           .join('\n');
-        console.log(transcription);
+        console.log('Google Api Transcription...' + transcription);
       } catch (error) {
         console.log('error transcribing', error);
       }
@@ -74,7 +74,7 @@ export class AppService {
           <Response>
             <Say>${initialGreeting}</Say>
             <Connect>
-              <Stream name="Outbound Audio Stream" track="inbound_track" url="wss://2d79-41-223-116-249.ngrok-free.app/call/intercept">
+              <Stream name="Outbound Audio Stream" track="inbound_track" url="wss://64a1-41-216-95-226.ngrok-free.app/call/intercept">
                <Parameter name="track" value="both" />
               </Stream>
             </Connect>
@@ -93,6 +93,7 @@ export class AppService {
       console.log('Stream connected');
       return {
         success: true,
+        call_id: call.sid,
       };
     } catch (error) {
       console.error('Error initiating call:', error);
@@ -101,18 +102,5 @@ export class AppService {
         error: error.message,
       };
     }
-  }
-  async handleWebSocket(socket: Set<WebSocket>) {
-    socket.forEach((ws) => {
-      this.activeCalls.forEach((call) => {
-        if (call.callSid) {
-          this.audioService.handleAudioStream(ws, call.callSid);
-        } else {
-          ws.close = () => {
-            this.activeCalls.delete(call.callSid);
-          };
-        }
-      });
-    });
   }
 }
