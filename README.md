@@ -106,7 +106,4 @@ OPENAI_API_KEY=your_openai_key
 
 [Google Cloud Authentication for API using CLI](https://cloud.google.com/speech-to-text/docs/speech-to-text-client-libraries)
 
-## Contributor
-
-[David Utibe-Abasi Okuku] - Initial work
 
