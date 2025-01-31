@@ -59,6 +59,7 @@ Working hours:
   private readonly LOG_EVENT_TYPES = [
     'response.content.done',
     'rate_limits.updated',
+    'response.content.part',
     'response.done',
     'input_audio_buffer.committed',
     'input_audio_buffer.speech_stopped',
@@ -149,7 +150,6 @@ Working hours:
         input_audio_format: 'g711_ulaw',
         output_audio_format: 'g711_ulaw',
         voice: this.VOICE,
-        instructions: this.SYSTEM_MESSAGE,
         modalities: ['text', 'audio'],
         temperature: 0.8,
       },
@@ -170,18 +170,7 @@ Working hours:
         content: audioBuffer.toString('base64'),
       },
     };
-    const recognizeStream = this.googleClient
-      .streamingRecognize(request)
-      .on('error', console.error)
-      .on('data', (data) =>
-        process.stdout.write(
-          data.results[0] && data.results[0].alternatives[0]
-            ? `Transcription: ${data.results[0].alternatives[0].transcript}\n`
-            : '\n\nReached transcription time limit, press Ctrl+C\n',
-        ),
-      );
 
-    console.log('Listening, press Ctrl+C to stop.');
     try {
       const [response] = await this.googleClient.recognize(request);
       const transcription = response.results
@@ -195,11 +184,10 @@ Working hours:
   }
   handleConnection(connection: WebSocket, request: IncomingMessage) {
     this.openAiWs.on('message', (data) => {
-      console.log(`open ai message: ${data}`);
       try {
         const response = JSON.parse(data.toString());
         if (this.LOG_EVENT_TYPES.includes(response.type)) {
-          console.log(`openAi Received event: ${response.type}`, response);
+          console.log(`openAi Received event: ${response.type}`);
         }
         if (response.response && response.response.status === 'failed') {
           console.error(
@@ -208,7 +196,10 @@ Working hours:
           );
         }
         if (response.type === 'session.updated') {
-          console.log('Session updated successfully:', response);
+          console.log('Session updated successfully:');
+        }
+        if (response.type === 'response.content.part' && response.content) {
+          console.log('OpenAI Transcription:', response.content);
         }
         if (response.type === 'response.audio.delta' && response.delta) {
           const audioDelta = {
@@ -250,14 +241,14 @@ Working hours:
               };
               this.openAiWs.send(JSON.stringify(audioAppend));
             }
-            // const googleTranscription =
-            //   await this.transcribeWithGoogle(audioBuffer);
-            // if (googleTranscription) {
-            //   console.log(
-            //     'Google Speech-to-Text Transcription:',
-            //     googleTranscription,
-            //   );
-            // }
+            const googleTranscription =
+              await this.transcribeWithGoogle(audioBuffer);
+            if (googleTranscription) {
+              console.log(
+                'Google Speech-to-Text Transcription:',
+                googleTranscription,
+              );
+            }
             break;
           default:
             console.log('Received non-media event:', data.event);
@@ -267,7 +258,6 @@ Working hours:
         console.error('Error parsing message:', error, 'Message:', message);
       }
     });
-    // Handle connection close
     connection.on('close', () => {
       if (this.openAiWs.readyState === WebSocket.OPEN) this.openAiWs.close();
       console.log('Client disconnected.');

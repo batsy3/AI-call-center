@@ -5,13 +5,16 @@ import { CallMetadata } from './call.interface';
 import { AudioService } from './audio.service';
 import { Twilio } from 'twilio';
 import WebSocket from 'ws';
+import { SpeechClient } from '@google-cloud/speech';
+import { readFile } from 'fs';
 const VoiceResponse = require('twilio').twiml
   .VoiceResponse as typeof import('twilio').twiml.VoiceResponse;
 @Injectable()
 export class AppService {
   private readonly client: Twilio;
   private readonly webUrl: string;
-
+  private googleApi;
+  private audioBuffer: Buffer;
   constructor(
     @Inject('ACTIVE_CALLS')
     private activeCalls: Map<string, CallMetadata>,
@@ -19,15 +22,46 @@ export class AppService {
     private audioService: AudioService,
   ) {
     this.client = twilio(
-      'ACf030769706d9a5c00e2a80f2b4a74d16',
-      'b234170961a844b47ac03c4a23918a95',
+      'AC196e3ac89dd69d110fff7283dfd797a9',
+      'ba4893fd60cb001b720e152c317d4c39',
       {
         lazyLoading: true,
         logLevel: 'debug',
       },
     );
+    this.googleApi = new SpeechClient();
   }
+  async testGoogleApi() {
+    readFile('src/audiotest.mp3', async (err, audioBuffer) => {
+      this.audioBuffer = audioBuffer;
+      if (err) {
+        console.error('Error reading the audio file:', err);
+        return;
+      }
+      try {
+        const request = {
+          config: {
+            encoding: 'MP3',
+            sampleRateHertz: 16000,
+            languageCode: 'en-US',
+            audioChannelCount: 1,
+            useEnhanced: true,
+          },
+          audio: {
+            content: audioBuffer.toString('base64'),
+          },
+        };
 
+        const [response] = await this.googleApi.recognize(request);
+        const transcription = response.results
+          .map((result) => result.alternatives[0].transcript)
+          .join('\n');
+        console.log(transcription);
+      } catch (error) {
+        console.log('error transcribing', error);
+      }
+    });
+  }
   async initiateCall(to: string) {
     try {
       const response = new VoiceResponse();

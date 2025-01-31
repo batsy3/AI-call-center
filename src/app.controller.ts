@@ -5,12 +5,15 @@ const twilio = require('twilio');
 
 @Controller('call')
 export class AppController {
-  constructor(
-    private readonly appService: AppService,
-  ) {}
+  constructor(private readonly appService: AppService) {}
 
   @Get()
   initiateCall() {
     return this.appService.initiateCall('+260979348765');
+  }
+
+  @Get('test-google')
+  testGoogleApi() {
+    return this.appService.testGoogleApi();
   }
 }
