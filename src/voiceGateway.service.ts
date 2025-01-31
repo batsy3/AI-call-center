@@ -1,4 +1,4 @@
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import {
   OnGatewayConnection,
   OnGatewayDisconnect,
@@ -6,11 +6,8 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, WebSocket } from 'ws';
-import { AudioService } from './audio.service';
 import { IncomingMessage } from 'http';
-import { CallMetadata } from './call.interface';
 import { ConfigService } from '@nestjs/config';
-import recorder from 'node-record-lpcm16';
 import speech from '@google-cloud/speech';
 @Injectable()
 @WebSocketGateway({

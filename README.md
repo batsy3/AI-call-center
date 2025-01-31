@@ -9,7 +9,7 @@ A virtual receptionist system that uses OpenAI's GPT-4, Twilio, and Google Speec
 - Implemented real-time communication with OpenAI's GPT-4 API using WebSocket.
 - Created a dental receptionist persona with specific guidelines and protocols.
 - Configured speech-to-text and text-to-speech capabilities using OpenAI's response JSON and Google Speech-to-Text.
-- Set up automatic reconnection handling for WebSocket disconnections.
+- Set up automatic reconnection handling for WebSocket disconnections.\
   [OpenAI Real-time setup](https://platform.openai.com/docs/api-reference/realtime)
 
 ### 2. Twilio Integration
@@ -17,7 +17,7 @@ A virtual receptionist system that uses OpenAI's GPT-4, Twilio, and Google Speec
 - Set up voice call handling using Twilio's programmable voice API.
 - Implemented media streaming for real-time audio processing.
 - Created TwiML responses for call flow management.
-- Configured audio stream interception.
+- Configured audio stream interception.\
   [Twilio API setup](https://platform.openai.com/docs/api-reference/realtime)
 
 ### 3. Google Speech-to-Text Integration
@@ -75,33 +75,11 @@ private async handleOpenAiDisconnect() {
   }
 }
 ```
-
 ### 2. Google Transcription Limit
 
 **Challenge:** Only the first few bits of the conversation would be transcribed before I hit the request limit on my account.
 
-### 3. Audio Quality and Transcription
-
-**Challenge:** Incorrect audio setup affecting transcription accuracy.
-**Solution:**
-
-- Implemented dual transcription with Google Speech-to-Text.
-- Used the phone_call-specific model.
-- Enhanced audio processing configuration.
-
-```typescript
-config: {
-  encoding: 'MULAW',
-  sampleRateHertz: 8000,
-  languageCode: 'en-US',
-  model: 'phone_call',
-  useEnhanced: true,
-}
-```
-
-[Google Cloud API reference](https://cloud.google.com/speech-to-text/docs/phone-model)
-
-### 4. Twilio Inability to Add Multiple Verified Numbers
+### 3. Twilio Inability to Add Multiple Verified Numbers
 
 **Challenge:** Had to create multiple accounts to use different numbers that could be called.
 
