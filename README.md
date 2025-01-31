@@ -108,88 +108,11 @@ config: {
 
 **twillio call and stream initiation**
 
-```typescript
-  async initiateCall(to: string) {
-    try {
-      const response = new VoiceResponse();
-      const initialGreeting = 'Welcome, how may I help you today?';
-      response.say(initialGreeting);
-      const call = await this.client.calls.create({
-        to,
-        from: this.configService.get('twilio.phoneNumber'),
-        twiml: `
-          <Response>
-            <Say>${initialGreeting}</Say>
-            <Connect>
-              <Stream name="Outbound Audio Stream" track="inbound_track" url="wss://[ngrok-forwarding-url]/call/intercept">
-               <Parameter name="track" value="both" />
-              </Stream>
-            </Connect>
-          </Response>
-        `,
-        record: true,
-      });
-
-      this.activeCalls.set(call.sid, {
-        callSid: call.sid,
-        from: this.configService.get('twilio.phoneNumber'),
-        to,
-        status: 'initiated',
-        initialGreeting,
-      });
-      console.log('Stream connected');
-      return {
-        success: true,
-        call_id: call.sid,
-      };
-    } catch (error) {
-      console.error('Error initiating call:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-```
+![Screenshot of Console](./twillio_call_logs.png)
 
 **google Api transaction**
 
-```typescript
-  async testGoogleApi() {
-    readFile('src/audiotest.mp3', async (err, audioBuffer) => {
-      this.audioBuffer = audioBuffer;
-      if (err) {
-        console.error('Error reading the audio file:', err);
-        return;
-      }
-      try {
-        const request = {
-          config: {
-            encoding: 'MP3',
-            sampleRateHertz: 16000,
-            languageCode: 'en-US',
-            audioChannelCount: 1,
-            useEnhanced: true,
-          },
-          audio: {
-            content: audioBuffer.toString('base64'),
-          },
-        };
-
-        const [response] = await this.googleApi.recognize(request);
-        const transcription = response.results
-          .map((result) => result.alternatives[0].transcript)
-          .join('\n');
-        console.log('Google Api Transcription...' + transcription);
-      } catch (error) {
-        console.log('error transcribing', error);
-      }
-    });
-  }
-```
-
 ![Screenshot of Console](./trancription_logs.png)
-![Screenshot of Console](./twillio_call_logs.png)
 
 
 
