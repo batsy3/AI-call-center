@@ -45,7 +45,7 @@ lerna-debug.log*
 # temp directory
 .temp
 .tmp
-
+src/tt-salon-app-777b4e025cd7.json
 # Runtime data
 pids
 *.pid
